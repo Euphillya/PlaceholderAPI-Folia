@@ -1,0 +1,43 @@
+name: Build and Upload Jar
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Grant execute permission to script
+        run: bash -c "chmod +x script.sh"
+
+      - name: Update upstream and apply patches
+        shell: bash
+        run: |
+          git config --global user.email "action@github.com"
+          git config --global user.name "Action Github"
+          ./script.sh updateUpstream
+          ./script.sh applyPatches
+
+      - name: Setup Gradle
+        uses: gradle/gradle-build-action@v3
+
+      - name: Build
+        shell: bash
+        run: |
+          cd PlaceholderAPI-Patchs
+          chmod +x gradlew
+          ./gradlew shadowJar --stacktrace
+
+      - name: Archive plugin jars on GitHub
+        uses: actions/upload-artifact@v4
+        with:
+          name: PlaceholderAPI plugin jar
+          path: PlaceholderAPI-Patchs/build/libs/

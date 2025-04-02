@@ -1,0 +1,3 @@
+[submodule "PlaceholderAPI"]
+	path = PlaceholderAPI
+	url = https://github.com/PlaceholderAPI/PlaceholderAPI

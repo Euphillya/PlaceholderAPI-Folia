@@ -1,0 +1,25 @@
+From 2ebc622bbbca02a7ee6e66fb1aa76d864aa97532 Mon Sep 17 00:00:00 2001
+From: Euphyllia Bierque <bierque.euphyllia@gmail.com>
+Date: Wed, 2 Apr 2025 21:05:33 +0200
+Subject: [PATCH 3/3] Folia supported true
+
+---
+ src/main/resources/plugin.yml | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/main/resources/plugin.yml b/src/main/resources/plugin.yml
+index 84c3f5f..fe0f4d4 100644
+--- a/src/main/resources/plugin.yml
++++ b/src/main/resources/plugin.yml
+@@ -7,6 +7,8 @@ author: HelpChat
+ api-version: "1.13"
+ description: "An awesome placeholder provider!"
+ 
++folia-supported: true
++
+ commands:
+   placeholderapi:
+     description: "PlaceholderAPI Command"
+-- 
+2.49.0.windows.1
+

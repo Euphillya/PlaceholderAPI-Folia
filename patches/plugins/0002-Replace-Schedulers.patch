@@ -1,0 +1,116 @@
+From e5d66aa8aafcfc9daa38086b12bb9b952066cd9b Mon Sep 17 00:00:00 2001
+From: Euphyllia Bierque <bierque.euphyllia@gmail.com>
+Date: Wed, 2 Apr 2025 21:04:37 +0200
+Subject: [PATCH 2/3] Replace Schedulers
+
+---
+ .../me/clip/placeholderapi/PlaceholderAPIPlugin.java   |  7 ++++---
+ .../commands/impl/local/CommandParse.java              | 10 +++++++++-
+ .../expansion/manager/CloudExpansionManager.java       |  4 ++--
+ .../placeholderapi/updatechecker/UpdateChecker.java    |  4 ++--
+ src/main/java/me/clip/placeholderapi/util/Futures.java |  4 ++--
+ 5 files changed, 19 insertions(+), 10 deletions(-)
+
+diff --git a/src/main/java/me/clip/placeholderapi/PlaceholderAPIPlugin.java b/src/main/java/me/clip/placeholderapi/PlaceholderAPIPlugin.java
+index e4af6e0..c808f1e 100644
+--- a/src/main/java/me/clip/placeholderapi/PlaceholderAPIPlugin.java
++++ b/src/main/java/me/clip/placeholderapi/PlaceholderAPIPlugin.java
+@@ -174,7 +174,8 @@ public final class PlaceholderAPIPlugin extends JavaPlugin {
+ 
+     HandlerList.unregisterAll(this);
+ 
+-    Bukkit.getScheduler().cancelTasks(this);
++    Bukkit.getAsyncScheduler().cancelTasks(this);
++    Bukkit.getGlobalRegionScheduler().cancelTasks(this);
+ 
+     adventure.close();
+     adventure = null;
+@@ -262,8 +263,8 @@ public final class PlaceholderAPIPlugin extends JavaPlugin {
+       Class.forName("org.bukkit.event.server.ServerLoadEvent");
+       new ServerLoadEventListener(this);
+     } catch (final ClassNotFoundException ignored) {
+-      Bukkit.getScheduler()
+-          .runTaskLater(this, () -> getLocalExpansionManager().load(Bukkit.getConsoleSender()), 1);
++      Bukkit.getGlobalRegionScheduler()
++          .runDelayed(this, (scheduledTask) -> getLocalExpansionManager().load(Bukkit.getConsoleSender()), 1);
+     }
+   }
+ 
+diff --git a/src/main/java/me/clip/placeholderapi/commands/impl/local/CommandParse.java b/src/main/java/me/clip/placeholderapi/commands/impl/local/CommandParse.java
+index 1ff59b9..8f332b1 100644
+--- a/src/main/java/me/clip/placeholderapi/commands/impl/local/CommandParse.java
++++ b/src/main/java/me/clip/placeholderapi/commands/impl/local/CommandParse.java
+@@ -118,7 +118,15 @@ public final class CommandParse extends PlaceholderCommand {
+         .setPlaceholders(player, String.join(" ", params.subList(1, params.size())));
+ 
+     if (command) {
+-      Bukkit.dispatchCommand(sender, message);
++      if (sender instanceof Player playerExecutor) {
++        playerExecutor.getScheduler().run(PlaceholderAPIPlugin.getInstance(), task1 -> {
++          Bukkit.dispatchCommand(sender, message);
++        }, null);
++      } else {
++        Bukkit.getGlobalRegionScheduler().execute(PlaceholderAPIPlugin.getInstance(), () -> {
++          Bukkit.dispatchCommand(sender, message);
++        });
++      }
+       return;
+     }
+ 
+diff --git a/src/main/java/me/clip/placeholderapi/expansion/manager/CloudExpansionManager.java b/src/main/java/me/clip/placeholderapi/expansion/manager/CloudExpansionManager.java
+index 4f3d1ef..235a396 100644
+--- a/src/main/java/me/clip/placeholderapi/expansion/manager/CloudExpansionManager.java
++++ b/src/main/java/me/clip/placeholderapi/expansion/manager/CloudExpansionManager.java
+@@ -203,8 +203,8 @@ public final class CloudExpansionManager {
+           // loop through what's left on the main thread
+           plugin
+               .getServer()
+-              .getScheduler()
+-              .runTask(
++              .getGlobalRegionScheduler()
++              .execute(
+                   plugin,
+                   () -> {
+                     try {
+diff --git a/src/main/java/me/clip/placeholderapi/updatechecker/UpdateChecker.java b/src/main/java/me/clip/placeholderapi/updatechecker/UpdateChecker.java
+index ac3b137..c0e9513 100644
+--- a/src/main/java/me/clip/placeholderapi/updatechecker/UpdateChecker.java
++++ b/src/main/java/me/clip/placeholderapi/updatechecker/UpdateChecker.java
+@@ -55,7 +55,7 @@ public class UpdateChecker implements Listener {
+   }
+ 
+   public void fetch() {
+-    Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
++    Bukkit.getAsyncScheduler().runNow(plugin, (asyncTask) -> {
+       try {
+         HttpsURLConnection con = (HttpsURLConnection) new URL(
+             "https://api.spigotmc.org/legacy/update.php?resource=" + RESOURCE_ID).openConnection();
+@@ -76,7 +76,7 @@ public class UpdateChecker implements Listener {
+         return;
+       }
+ 
+-      Bukkit.getScheduler().runTask(plugin, () -> {
++      Bukkit.getGlobalRegionScheduler().execute(plugin, () -> {
+         plugin.getLogger()
+             .info("An update for PlaceholderAPI (v" + getSpigotVersion() + ") is available at:");
+         plugin.getLogger()
+diff --git a/src/main/java/me/clip/placeholderapi/util/Futures.java b/src/main/java/me/clip/placeholderapi/util/Futures.java
+index deb0e46..49c6719 100644
+--- a/src/main/java/me/clip/placeholderapi/util/Futures.java
++++ b/src/main/java/me/clip/placeholderapi/util/Futures.java
+@@ -40,10 +40,10 @@ public final class Futures {
+       @NotNull final CompletableFuture<T> future,
+       @NotNull final BiConsumer<T, Throwable> consumer) {
+     future.whenComplete((value, exception) -> {
+-      if (Bukkit.isPrimaryThread()) {
++      if (false && Bukkit.isPrimaryThread()) {
+         consumer.accept(value, exception);
+       } else {
+-        Bukkit.getScheduler().runTask(plugin, () -> consumer.accept(value, exception));
++        Bukkit.getGlobalRegionScheduler().execute(plugin, () -> consumer.accept(value, exception));
+       }
+     });
+   }
+-- 
+2.49.0.windows.1
+
