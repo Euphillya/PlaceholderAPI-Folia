@@ -1,5 +1,13 @@
 name: Build and Upload Jar
 
+on:
+  push:
+    branches:
+      - folia
+  pull_request:
+    branches:
+      - folia
+
 jobs:
   build:
     runs-on: windows-latest
